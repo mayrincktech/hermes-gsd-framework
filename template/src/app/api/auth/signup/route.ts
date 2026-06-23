@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { eq } from "drizzle-orm";
-import { db } from "@/lib/db";
+import { getDb } from "@/lib/db";
 import { users } from "@/lib/db/schema";
+
+export const dynamic = "force-dynamic";
 
 export async function POST(req: Request) {
   try {
@@ -21,6 +23,8 @@ export async function POST(req: Request) {
         { status: 400 }
       );
     }
+
+    const db = getDb();
 
     const [existing] = await db
       .select()

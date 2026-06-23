@@ -16,7 +16,8 @@ function getLocaleFromPath(pathname: string): string {
   return routing.locales.includes(segment as never) ? segment : routing.defaultLocale;
 }
 
-export default auth((req) => {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export default auth((req: any) => {
   const { pathname } = req.nextUrl;
 
   // Let next-intl handle locale detection + rewriting
