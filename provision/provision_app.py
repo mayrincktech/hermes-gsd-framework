@@ -36,7 +36,7 @@ from pathlib import Path
 # ─── Constants ────────────────────────────────────────────────────────────────
 WORKSPACE = Path("/home/moises/workspace")
 GSD_HUB = WORKSPACE / "gsd-hub"
-GITHUB_ORG = "lucronaconfeitaria-ops"
+GITHUB_ORG = "mayrincktech"
 ENV_FILE = Path.home() / ".hermes" / ".env"
 VERCEL_TOKEN_FILE = Path("/tmp/.vercel_tok")
 DATA_FILE = GSD_HUB / "data" / "provisioned_apps.json"

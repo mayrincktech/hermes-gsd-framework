@@ -87,7 +87,7 @@ Também appenda em `data/provisioned_apps.json` para registro.
 
 ## Configuração do GitHub Org
 
-O script usa a org `lucronaconfeitaria-ops` por padrão. Para mudar:
+O script usa o usuário `mayrincktech` por padrão. Para mudar:
 
 ```python
 # No topo do script

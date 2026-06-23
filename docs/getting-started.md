@@ -39,7 +39,7 @@ vercel login
 ## Instalação
 
 ```bash
-git clone https://github.com/lucronaconfeitaria-ops/gsd-framework.git
+git clone https://github.com/mayrincktech/gsd-framework.git
 cd gsd-framework
 ```
 

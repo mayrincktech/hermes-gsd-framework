@@ -28,7 +28,7 @@ O GSD (Get Shit Done) é um framework que combina:
 
 ```bash
 # 1. Clone o framework
-git clone https://github.com/lucronaconfeitaria-ops/gsd-framework.git
+git clone https://github.com/mayrincktech/gsd-framework.git
 cd gsd-framework
 
 # 2. Configure credenciais
@@ -48,7 +48,7 @@ O script retorna:
 {
   "app_name": "Meu App",
   "slug": "meu-app",
-  "github_url": "https://github.com/lucronaconfeitaria-ops/meu-app",
+  "github_url": "https://github.com/mayrincktech/meu-app",
   "vercel_url": "https://meu-app.vercel.app",
   "database_schema": "meu_app",
   "database_url": "postgresql://...?schema=meu_app",
