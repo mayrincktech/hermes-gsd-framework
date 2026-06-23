@@ -59,6 +59,8 @@
     "language": "Idioma",
     "account": "Conta",
     "profile": "Perfil",
+    "name": "Nome",
+    "email": "E-mail",
     "saveChanges": "Salvar alterações",
     "saved": "Salvo com sucesso"
   },
