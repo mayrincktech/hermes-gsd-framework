@@ -9,7 +9,8 @@ Flow:
   4. NEON DATABASE      Create schema + auth tables (users, accounts, sessions, verification_tokens)
   5. VERCEL ENV VARS    Set DATABASE_URL + AUTH_SECRET via Vercel API
   6. VERCEL DEPLOY      Link project → `vercel --prod` → disable Vercel Auth
-  7. OUTPUT             Print JSON summary + append to provisioned_apps.json
+  7. INIT .PLANNING     Create .planning/ directory with templates + pipeline status
+  8. OUTPUT             Print JSON summary + append to provisioned_apps.json
 
 Usage:
     python3 provision_app.py \
@@ -34,6 +35,7 @@ import sys
 import urllib.request
 import urllib.error
 from pathlib import Path
+import datetime
 
 # ─── Constants ────────────────────────────────────────────────────────────────
 WORKSPACE = Path("/home/moises/workspace")
@@ -542,7 +544,71 @@ def parse_vercel_url(stdout: str) -> str:
     return None
 
 
-# ─── Step 7: Output ──────────────────────────────────────────────────────────
+# ─── Step 7: Init .planning directory ──────────────────────────────────────
+def step_init_planning(app_name: str, slug: str, description: str, dest: Path,
+                        github_url: str, vercel_url: str):
+    """Create .planning/ directory with templates and pipeline status."""
+    log(f"\n📋 Step 7: Init .planning/ → {dest / '.planning'}")
+
+    planning_dir = dest / ".planning"
+    planning_dir.mkdir(parents=True, exist_ok=True)
+
+    templates_dir = Path(__file__).resolve().parent.parent / "templates" / "planning"
+
+    # Copy template files
+    shutil.copy2(templates_dir / "STATE.template.md", planning_dir / "STATE.md")
+    shutil.copy2(templates_dir / "ROADMAP.template.md", planning_dir / "ROADMAP.md")
+    shutil.copy2(templates_dir / "task.template.md", planning_dir / "task.md")
+    log(f"   ✅ Copied planning templates")
+
+    # Customize STATE.md
+    state_path = planning_dir / "STATE.md"
+    state_content = state_path.read_text(encoding="utf-8")
+    state_content = state_content.replace("{APP_NAME}", app_name)
+    state_path.write_text(state_content, encoding="utf-8")
+    log(f"   ✅ STATE.md personalized")
+
+    # Customize ROADMAP.md
+    roadmap_path = planning_dir / "ROADMAP.md"
+    roadmap_content = roadmap_path.read_text(encoding="utf-8")
+    roadmap_content = roadmap_content.replace("{APP_NAME}", app_name)
+    roadmap_content = roadmap_content.replace("{APP_DESCRIPTION}", description)
+    roadmap_path.write_text(roadmap_content, encoding="utf-8")
+    log(f"   ✅ ROADMAP.md personalized")
+
+    # Create pipeline-status.json from template
+    now = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    pipeline_template = json.loads(
+        (templates_dir / "pipeline-status.template.json").read_text(encoding="utf-8")
+    )
+    pipeline_template["app"]["slug"] = slug
+    pipeline_template["app"]["name"] = app_name
+    pipeline_template["app"]["url"] = vercel_url
+    pipeline_template["app"]["repo"] = github_url
+    pipeline_template["app"]["local_path"] = str(dest)
+    pipeline_template["updated_at"] = now
+
+    pipeline_path = planning_dir / "pipeline-status.json"
+    pipeline_path.write_text(
+        json.dumps(pipeline_template, indent=2) + "\n", encoding="utf-8"
+    )
+    log(f"   ✅ pipeline-status.json created")
+
+    # Create empty features/ directory
+    features_dir = planning_dir / "features"
+    features_dir.mkdir(exist_ok=True)
+    log(f"   ✅ features/ directory created")
+
+    # Git add + commit .planning to the app's repo
+    env = {"GIT_AUTHOR_NAME": GITHUB_NAME, "GIT_AUTHOR_EMAIL": GITHUB_EMAIL}
+    run("git add .planning/", cwd=dest, env=env, check=False)
+    run("git diff --cached --quiet || git commit -q -m "
+        "\"Init .planning/ directory with pipeline state\"",
+        cwd=dest, env=env, check=False)
+    log(f"   ✅ Git committed .planning/")
+
+
+# ─── Step 8: Output ──────────────────────────────────────────────────────────
 def step_output(summary: dict):
     """Print JSON summary and append to provisioned_apps.json."""
     log("\n" + "=" * 60)
@@ -628,6 +694,10 @@ def main():
 
         # 6. Vercel deploy (env vars already set, DB tables already created)
         vercel_url = step_vercel_deploy(slug, dest, vercel_token)
+
+        # 7. Init .planning directory (after deploy, before output)
+        step_init_planning(app_name, slug, description, dest,
+                           github_url, vercel_url)
 
     except StepError as e:
         fail("provisioning", str(e), exc=e)

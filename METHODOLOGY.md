@@ -411,6 +411,111 @@ Desktop (≥768px) — adaptação:
 
 ---
 
+## Telemetry Contract
+
+### pipeline-status.json — obrigatório
+
+Todo app GSD tem `.planning/pipeline-status.json`. Após cada gate, o Orchestrator atualiza o arquivo:
+
+| Evento | Ação |
+|---|---|
+| Gate começou | `phases[].status = "in_progress"` + `started_at` |
+| Gate passou | `phases[].status = "passed"` + `completed_at` + `duration_sec` + `result` |
+| Gate falhou | `phases[].status = "failed"` + `result` com motivo |
+| Task começou | `tasks[].status = "in_progress"` + `delegate_id` |
+| Task completou | `tasks[].status = "completed"` + `completed_at` + `files_count` + `lines_count` |
+| Feature deployada | Move de `active_feature` → `deployed_features[]` |
+
+Pipeline sem telemetria = pipeline inválido. O Hub depende disso.
+
+### Modelo de delegation
+
+```yaml
+# config.yaml
+delegation:
+  model: deepseek-v4-flash
+  provider: custom:opencode-go
+```
+
+Per-task override:
+```python
+delegate_task(tasks=[
+  {"goal": "...", "model": "deepseek-v4-flash"},
+  {"goal": "...", "model": "kimi-k2.7-code"}
+])
+```
+
+---
+
+## Feature Lifecycle
+
+### Uma feature por vez
+
+Um app não pode ter duas features simultâneas em `active_feature`. Motivo: conflito de arquivos, deploys, e dependências.
+
+### Fluxo
+
+```
+queued_features[]
+    ↓ (feature_runner.py ou comando Hermes)
+active_feature
+    ↓ (pipeline completo: RESEARCH → DEPLOY)
+deployed_features[]
+```
+
+### Cada feature reinicia o pipeline
+
+Cada feature passa por todos os gates do zero. Gates não acumulam entre features. Histórico de features anteriores é preservado em `deployed_features[]` e em `features/{id}/`.
+
+### Versionamento
+
+Cada feature deployada incrementa a versão do app (minor): `1.0.0` → `1.1.0`.
+
+---
+
+## Delegation Enforcement
+
+### Regras obrigatórias
+
+| Role | Quem | Modelo | Como |
+|---|---|---|---|
+| Orchestrator | GLM-5.2 (ou superior) | Provider principal | Direto |
+| Code AI | DeepSeek V4 Flash/Pro | `custom:opencode-go` | `delegate_task(model: "deepseek-v4-flash")` |
+| QA AI | Kimi K2.7 Code | `custom:opencode-go` | `delegate_task(model: "kimi-k2.7-code")` |
+
+### Proibições
+
+- **Orchestrator NÃO codifica** — deve delegar via `delegate_task`
+- **Mesmo modelo não revisa próprio código** — DeepSeek escreve, Kimi revisa
+- **Sem task list, sem EXECUTE** — tasks devem estar criadas antes da execução
+
+### Quando NÃO delegar
+
+- Debugging (processo interativo)
+- Fixes de 1 arquivo
+- Mudanças de config
+- Escrita de specs/docs (RESEARCH, ARCHITECTURE, UX DESIGN — Orchestrator faz direto)
+
+---
+
+## Task Management
+
+### Formato
+
+Tasks vivem em `.planning/features/{feature-id}/tasks/{NN}-slug.md` com frontmatter YAML.
+
+Ver `schemas/task-format.md` para template completo.
+
+### Regras
+
+- ID: `{FEATURE_ID}-{TASK_ID}` (ex: `02-003`)
+- Máx 5 arquivos por task
+- Máx 500 linhas por task
+- Dependencies devem estar completed antes de iniciar
+- Status sincroniza com `pipeline-status.json` após cada mudança
+
+---
+
 ## Final Rules
 
 - Orchestrator THINKS, Code AI BUILDS and TESTS, QA AI REVIEWS
