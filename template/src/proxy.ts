@@ -5,10 +5,21 @@ import { NextResponse } from "next/server";
 
 const intlMiddleware = createIntlMiddleware(routing);
 
-const AUTH_PAGES = ["/login", "/signup"];
+// Public pages that don't require authentication
+const PUBLIC_PAGES = ["/login", "/signup"];
 
 function isAuthPage(pathname: string): boolean {
-  return AUTH_PAGES.some((page) => pathname.endsWith(page));
+  return PUBLIC_PAGES.some((page) => pathname.endsWith(page));
+}
+
+function isRootLocalePage(pathname: string): boolean {
+  // Matches /pt-BR or /en (with optional trailing slash) but NOT /pt-BR/dashboard etc.
+  const segments = pathname.split("/").filter(Boolean);
+  if (segments.length === 0) return true; // "/"
+  if (segments.length === 1 && routing.locales.includes(segments[0] as never)) {
+    return true; // "/pt-BR" or "/en"
+  }
+  return false;
 }
 
 function getLocaleFromPath(pathname: string): string {
@@ -25,6 +36,12 @@ export default auth((req: any) => {
 
   const isAuth = !!req.auth;
   const isAuthRoute = isAuthPage(pathname);
+  const isLanding = isRootLocalePage(pathname);
+
+  // Landing page is public — always allow
+  if (isLanding) {
+    return response;
+  }
 
   // Not authenticated + trying to access protected page → redirect to login
   if (!isAuth && !isAuthRoute && !pathname.startsWith("/api")) {
@@ -36,7 +53,7 @@ export default auth((req: any) => {
   // Authenticated + trying to access login/signup → redirect to dashboard
   if (isAuth && isAuthRoute) {
     const locale = getLocaleFromPath(pathname);
-    const homeUrl = new URL(`/${locale}`, req.url);
+    const homeUrl = new URL(`/${locale}/dashboard`, req.url);
     return NextResponse.redirect(homeUrl);
   }
 

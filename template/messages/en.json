@@ -91,5 +91,78 @@
     "title": "Something went wrong",
     "description": "An unexpected error occurred. Please try again.",
     "tryAgain": "Try again"
+  },
+  "Landing": {
+    "nav": {
+      "features": "Features",
+      "stack": "Tech Stack",
+      "pricing": "Pricing",
+      "signIn": "Sign in",
+      "getStarted": "Get started"
+    },
+    "hero": {
+      "badge": "Production-ready template",
+      "title": "Start your next product without starting from scratch",
+      "subtitle": "Auth, i18n, database, and design system already configured. Focus on what matters: your business.",
+      "ctaPrimary": "Create account",
+      "ctaSecondary": "See features"
+    },
+    "stats": {
+      "next": "Next.js",
+      "locales": "Languages",
+      "components": "Components",
+      "deploy": "Deploy"
+    },
+    "features": {
+      "label": "Features",
+      "title": "Everything you need on day one",
+      "subtitle": "Every piece of the template is built for production — not a demo, not a placeholder.",
+      "auth": {
+        "title": "Complete authentication",
+        "desc": "Email/password and GitHub OAuth login. JWT sessions, protected route middleware, bcrypt password hashing."
+      },
+      "i18n": {
+        "title": "Internationalization",
+        "desc": "Portuguese and English pre-configured with next-intl. Real-time language switching, localized URLs."
+      },
+      "fast": {
+        "title": "Optimized build",
+        "desc": "Turbopack, lazy connection initialization, server components by default. Build passes without env vars."
+      },
+      "mobile": {
+        "title": "True mobile-first",
+        "desc": "Layout starts at 375px. Sidebar becomes bottom nav on mobile. Touch targets, spacing, responsive typography."
+      },
+      "secure": {
+        "title": "Secure by default",
+        "desc": "NextAuth v5, Drizzle ORM with typesafe schema, Zod validation, bcrypt passwords. No plaintext anything."
+      },
+      "scalable": {
+        "title": "Scales when you need it",
+        "desc": "Neon serverless Postgres, Drizzle migrations, route group architecture. Add features without rewriting."
+      }
+    },
+    "stack": {
+      "label": "Technology",
+      "title": "Modern stack, chosen with intent",
+      "subtitle": "Every dependency solves a real problem. No bloat, no hype-driven choices."
+    },
+    "cta": {
+      "title": "Ready to start?",
+      "subtitle": "Create your account in seconds. No credit card required.",
+      "primary": "Create free account",
+      "secondary": "I have an account"
+    },
+    "footer": {
+      "tagline": "Built for developers who value their time.",
+      "product": "Product",
+      "company": "Company",
+      "legal": "Legal",
+      "about": "About",
+      "contact": "Contact",
+      "privacy": "Privacy",
+      "terms": "Terms",
+      "rights": "All rights reserved."
+    }
   }
 }

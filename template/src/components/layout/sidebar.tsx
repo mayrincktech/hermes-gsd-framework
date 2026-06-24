@@ -15,7 +15,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 
 const navItems = [
-  { href: "/" as const, icon: LayoutDashboard, key: "dashboard" as const },
+  { href: "/dashboard" as const, icon: LayoutDashboard, key: "dashboard" as const },
   { href: "/projects" as const, icon: FolderKanban, key: "projects" as const },
   { href: "/settings" as const, icon: Settings, key: "settings" as const },
 ];

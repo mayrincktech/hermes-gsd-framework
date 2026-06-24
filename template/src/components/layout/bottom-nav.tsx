@@ -6,7 +6,7 @@ import { LayoutDashboard, FolderKanban, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
-  { href: "/" as const, icon: LayoutDashboard, key: "dashboard" as const },
+  { href: "/dashboard" as const, icon: LayoutDashboard, key: "dashboard" as const },
   { href: "/projects" as const, icon: FolderKanban, key: "projects" as const },
   { href: "/settings" as const, icon: Settings, key: "settings" as const },
 ];

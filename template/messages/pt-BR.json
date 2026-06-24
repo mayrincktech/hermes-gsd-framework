@@ -91,5 +91,78 @@
     "title": "Algo deu errado",
     "description": "Ocorreu um erro inesperado. Tente novamente.",
     "tryAgain": "Tentar novamente"
+  },
+  "Landing": {
+    "nav": {
+      "features": "Recursos",
+      "stack": "Tecnologia",
+      "pricing": "Planos",
+      "signIn": "Entrar",
+      "getStarted": "Começar"
+    },
+    "hero": {
+      "badge": "Template pronto para produção",
+      "title": "Comece seu próximo produto sem partir do zero",
+      "subtitle": "Auth, i18n, banco de dados e design system já configurados. Foque no que importa: seu negócio.",
+      "ctaPrimary": "Criar conta",
+      "ctaSecondary": "Ver recursos"
+    },
+    "stats": {
+      "next": "Next.js",
+      "locales": "Idiomas",
+      "components": "Componentes",
+      "deploy": "Deploy"
+    },
+    "features": {
+      "label": "Recursos",
+      "title": "Tudo que você precisa no primeiro dia",
+      "subtitle": "Cada item do template foi construído para produção — não é demo, não é placeholder.",
+      "auth": {
+        "title": "Autenticação completa",
+        "desc": "Login com email/senha e GitHub OAuth. Sessões JWT, middleware de rotas protegidas, hashing com bcrypt."
+      },
+      "i18n": {
+        "title": "Internacionalização",
+        "desc": "Português e inglês pré-configurados com next-intl. Troca de idioma em tempo real, URLs localizadas."
+      },
+      "fast": {
+        "title": "Build otimizado",
+        "desc": "Turbopack, lazy initialization de conexões, server components por padrão. Build que passa sem env vars."
+      },
+      "mobile": {
+        "title": "Mobile-first real",
+        "desc": "Layout começa em 375px. Sidebar vira bottom nav no mobile. Touch targets, espaçamento e tipografia responsivos."
+      },
+      "secure": {
+        "title": "Seguro por padrão",
+        "desc": "NextAuth v5, Drizzle ORM com typesafe schema, validação com Zod, senhas com bcrypt. Nada de texto plano."
+      },
+      "scalable": {
+        "title": "Escala quando precisar",
+        "desc": "Neon Postgres serverless, Drizzle migrations, arquitetura de route groups. Adicione features sem reescrever."
+      }
+    },
+    "stack": {
+      "label": "Tecnologia",
+      "title": "Stack moderna, escolhida com critério",
+      "subtitle": "Cada dependência resolve um problema real. Sem bloat, sem moda por moda."
+    },
+    "cta": {
+      "title": "Pronto para começar?",
+      "subtitle": "Crie sua conta em segundos. Sem cartão de crédito.",
+      "primary": "Criar conta grátis",
+      "secondary": "Já tenho conta"
+    },
+    "footer": {
+      "tagline": "Construído para desenvolvedores que valorizam tempo.",
+      "product": "Produto",
+      "company": "Empresa",
+      "legal": "Legal",
+      "about": "Sobre",
+      "contact": "Contato",
+      "privacy": "Privacidade",
+      "terms": "Termos",
+      "rights": "Todos os direitos reservados."
+    }
   }
 }
