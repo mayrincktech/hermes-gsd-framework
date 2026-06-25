@@ -1,4 +1,4 @@
-# GSD Methodology v8
+# GSD Methodology v8.1
 
 **Get Spec Done** — um sistema production-ready para desenvolvimento autônomo com IA orientado a especificações.
 
@@ -85,6 +85,10 @@ Orchestrator AI (role: orchestrator)
 ## Pipeline Completo
 
 ```
+MODE GATE (Orchestrator — declara modo + checklist)
+    ↓ (checked)
+FILE SAFETY (Orchestrator — move arquivos do usuário para .planning/)
+    ↓
 RESEARCH GATE (Orchestrator + Research Agent)
     ↓ (BUILD?)
 BUSINESS VALIDATION (Orchestrator — viabilidade comercial)
@@ -97,7 +101,9 @@ UX DESIGN GATE (Orchestrator — DESIGN-SYSTEM.md + WIREFRAMES.md)
     ↓ (wireframes aprovados)
 PLAN (Orchestrator — decomposição em waves)
     ↓
-EXECUTE (Code AI — delegate_task)
+EXECUTE GATE (Orchestrator — checklist de pré-execução)
+    ↓ (all checked)
+EXECUTE PROTOCOL (Code AI — delegate_task, passo a passo)
     ↓
 UX REVIEW (Orchestrator — UX Score ≥ 42/60) [apenas tasks com UI]
     ↓ (aprovado?)
@@ -610,12 +616,87 @@ O sucesso do framework é medido por dados reais, não por README bonito.
 
 ---
 
+## MODE GATE (OBRIGATÓRIO)
+
+Antes de qualquer trabalho, o Orchestrator DEVE declarar explicitamente:
+
+```
+MODO: [Fast | Enterprise]
+PROJETO: [nome]
+APP SLUG: [slug]
+```
+
+### Enterprise Mode Checklist
+- [ ] spec.md movido para .planning/ (FILE SAFETY)
+- [ ] RESEARCH.md existe
+- [ ] ARCHITECTURE.md existe (stack locked)
+- [ ] DESIGN-SYSTEM.md existe
+- [ ] WIREFRAMES.md existe
+- [ ] STATE.md criado
+- [ ] Kanban: cards criados para cada task do PLAN
+- [ ] provision_app.py executado (ou justificativa)
+- [ ] delegate_task disponível
+
+### Fast Mode Checklist
+- [ ] spec.md existe em .planning/
+- [ ] STATE.md criado
+- [ ] Kanban: ao menos 1 card criado
+- [ ] delegate_task disponível
+
+**Sem checklist completo → EXECUTE bloqueado.**
+
+---
+
+## FILE SAFETY RULE (OBRIGATÓRIO)
+
+NUNCA rodar scaffolds dentro de pasta com arquivos do usuário.
+
+### Protocolo:
+1. Antes de scaffold/install, mover TODOS os arquivos do usuário para `.planning/`
+2. Scaffold roda em diretório limpo ou via provision_app.py
+3. Arquivos do usuário são referenciados de `.planning/`
+
+### Proibido:
+- `create-next-app`, `npm init`, `npx shadcn init` em pasta com spec.md solto
+- Qualquer comando que sobrescreva sem backup
+
+---
+
+## EXECUTE GATE (OBRIGATÓRIO)
+
+Antes de delegar a primeira task:
+
+```
+[ ] MODE GATE declarado e checklist completo
+[ ] FILE SAFETY aplicado
+[ ] provision_app.py executado OU justificativa por escrito
+[ ] Template web-app-template usado (Enterprise) OU scaffold justificado
+[ ] Kanban tem cards para TODAS as tasks
+[ ] delegate_task configurado (provider + model)
+[ ] DESIGN-SYSTEM.md + WIREFRAMES.md acessíveis
+```
+
+## EXECUTE PROTOCOL (passo a passo)
+
+```
+PASSO 1: Provisionar → provision_app.py
+PASSO 2: Criar Kanban cards (uma por task)
+PASSO 3: Delegar → delegate_task com task spec + context
+PASSO 4: Atualizar Kanban (In Progress → Review → Done)
+```
+
+**Orchestrator NUNCA escreve .tsx, .ts, .py, .go. Só .md.**
+
+---
+
 ## Final Rules
 
 - Orchestrator THINKS, Code AI BUILDS and TESTS, QA AI REVIEWS
 - **Never use same model for implement and QA**
 - **Never start UI code without approved wireframe**
 - **Never skip Design System**
+- **Never skip MODE GATE, FILE SAFETY, and EXECUTE GATE**
+- **Always use provision_app.py + template (never create-next-app do zero)**
 - Never mix roles
 - Always research before planning new products
 - Always lock architecture before coding
