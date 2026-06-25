@@ -2,7 +2,7 @@
 
 **Metodologia spec-driven para desenvolvimento de apps com IA — roda sobre o [Hermes Agent](https://hermes-agent.nousresearch.com).**
 
-O GSD (Get Shit Done) é um framework que orquestra múltiplos agentes de IA com papéis especializados, gates de qualidade obrigatórios e pipeline estruturado. Não é só "pedir pro IA escrever código" — é um sistema production-ready com arquitetura travada, UX design gate e QA com modelo diferente do executor.
+O GSD (Get Spec Done) é um framework spec-driven que orquestra múltiplos agentes de IA com papéis especializados, gates de qualidade obrigatórios e pipeline estruturado. A diferença: todo desenvolvimento é orientado por especificações (research, architecture, UX design, wireframes) antes de uma linha de código. Não é "pedir pro IA escrever código" — é um sistema production-ready com arquitetura travada, UX design gate e QA com modelo diferente do executor.
 
 > ⚠️ **Este framework depende do Hermes Agent e de patches específicos.** Veja [`docs/hermes-requirements.md`](docs/hermes-requirements.md) para setup completo.
 

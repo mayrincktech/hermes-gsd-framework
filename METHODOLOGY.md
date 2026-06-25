@@ -1,6 +1,6 @@
 # GSD Methodology v8
 
-**Get Shit Done** — um sistema production-ready para desenvolvimento autônomo com IA.
+**Get Spec Done** — um sistema production-ready para desenvolvimento autônomo com IA orientado a especificações.
 
 ## Role System (Model-Agnostic)
 
