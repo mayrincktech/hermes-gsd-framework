@@ -4,7 +4,6 @@ Every GSD-managed app has a `.planning/` directory at the root.
 
 ```
 .planning/
-├── pipeline-status.json          # Machine-readable telemetry (Hub reads this)
 ├── STATE.md                      # Human-readable current state
 ├── ROADMAP.md                    # Medium-term vision
 ├── ARCHITECTURE.md               # Locked stack decisions
@@ -30,9 +29,8 @@ Every GSD-managed app has a `.planning/` directory at the root.
 
 ## Rules
 
-- `pipeline-status.json` is the **single source of truth** for the Hub
-- Markdown files are for humans (Hermes writes, user reads)
-- JSON is for machines (Hermes writes, Hub reads)
+- STATE.md is the human-readable audit trail (Hermes writes, user reads)
+- The Kanban board is the **real-time observability layer** (Hermes updates after each gate)
 - Feature directories are numbered, never renamed
 - Tasks within features follow `{FEATURE_ID}-{TASK_ID}` naming
 - Completed features keep their files (history is preserved)

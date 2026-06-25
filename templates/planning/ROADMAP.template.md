@@ -16,4 +16,4 @@
 - [ ] TBD
 
 ## Priority Queue
-Features planned but not yet started are tracked in pipeline-status.json under queued_features[].
+Features planned but not yet started are tracked as "To Do" cards on the Kanban board.

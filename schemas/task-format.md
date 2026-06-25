@@ -48,4 +48,4 @@ What to build. Be specific — reference architecture decisions, design system t
 - One responsibility per task
 - Max 5 files, max 500 lines
 - If task needs more → split into multiple tasks
-- Status updates must sync to pipeline-status.json
+- Status updates must sync to the Kanban board

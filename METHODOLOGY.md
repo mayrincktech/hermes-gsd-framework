@@ -413,20 +413,19 @@ Desktop (≥768px) — adaptação:
 
 ## Telemetry Contract
 
-### pipeline-status.json — obrigatório
+### Kanban Board — observabilidade nativa
 
-Todo app GSD tem `.planning/pipeline-status.json`. Após cada gate, o Orchestrator atualiza o arquivo:
+O Hermes Kanban board é a fonte de verdade visual do pipeline. Após cada gate, o Orchestrator atualiza o Kanban:
 
 | Evento | Ação |
 |---|---|
-| Gate começou | `phases[].status = "in_progress"` + `started_at` |
-| Gate passou | `phases[].status = "passed"` + `completed_at` + `duration_sec` + `result` |
-| Gate falhou | `phases[].status = "failed"` + `result` com motivo |
-| Task começou | `tasks[].status = "in_progress"` + `delegate_id` |
-| Task completou | `tasks[].status = "completed"` + `completed_at` + `files_count` + `lines_count` |
-| Feature deployada | Move de `active_feature` → `deployed_features[]` |
+| Gate começou | Card → "In Progress" |
+| Gate passou | kanban_complete(card, result) |
+| Gate falhou | kanban_block(card, reason) → "Blocked" |
+| Task completou | Card body atualizado com files_count, lines_count |
+| Feature deployada | Todos os cards → "Done" |
 
-Pipeline sem telemetria = pipeline inválido. O Hub depende disso.
+STATE.md continua como audit trail em markdown. Sem app separado, sem JSON, sem polling.
 
 ### Modelo de delegation
 
@@ -512,7 +511,7 @@ Ver `schemas/task-format.md` para template completo.
 - Máx 5 arquivos por task
 - Máx 500 linhas por task
 - Dependencies devem estar completed antes de iniciar
-- Status sincroniza com `pipeline-status.json` após cada mudança
+- Status sincroniza com o Kanban board após cada mudança
 
 ---
 

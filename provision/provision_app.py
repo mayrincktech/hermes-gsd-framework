@@ -35,20 +35,19 @@ import sys
 import urllib.request
 import urllib.error
 from pathlib import Path
-import datetime
 
 # ─── Constants ────────────────────────────────────────────────────────────────
 WORKSPACE = Path("/home/moises/workspace")
-GSD_HUB = WORKSPACE / "gsd-hub"
 GITHUB_ORG = "mayrincktech"
 GITHUB_EMAIL = "lucronaconfeitaria@gmail.com"  # Must match Vercel account email
 GITHUB_NAME = "Moises Mayrinck"
 ENV_FILE = Path.home() / ".hermes" / ".env"
 VERCEL_TOKEN_FILE = Path("/tmp/.vercel_tok")
-DATA_FILE = GSD_HUB / "data" / "provisioned_apps.json"
+DATA_FILE = WORKSPACE / "gsd-framework" / "data" / "provisioned_apps.json"
 NVM_SOURCE = ". ~/.nvm/nvm.sh"
-VENV_PYTHON = str(GSD_HUB / ".venv" / "bin" / "python3")
 DEFAULT_TEMPLATE = str(WORKSPACE / "web-app-template")
+
+Path(WORKSPACE / "gsd-framework" / "data").mkdir(parents=True, exist_ok=True)
 
 # Files / dirs to strip when copying the template (avoid copying build state)
 TEMPLATE_JUNK = {".git", "node_modules", ".next", ".vercel", ".DS_Store"}
@@ -140,12 +139,12 @@ def run(cmd, cwd=None, env=None, check=True, timeout=600):
 
 
 def run_py(code: str, env=None, check=True):
-    """Run Python code in the gsd-hub venv (has psycopg2)."""
+    """Run Python code (requires psycopg2 installed)."""
     merged_env = dict(os.environ)
     if env:
         merged_env.update(env)
     r = subprocess.run(
-        [VENV_PYTHON, "-c", code],
+        [sys.executable, "-c", code],
         capture_output=True, text=True, env=merged_env, timeout=60,
     )
     if check and r.returncode != 0:
@@ -349,7 +348,7 @@ def step_neon_database(slug: str, neon_conn: str) -> tuple:
     schema = slug_to_schema(slug)
     log(f"\n🗄️  Step 4: Neon database → schema={schema}, tables in public")
 
-    # psycopg2 lives in the gsd-hub venv
+    # Requires psycopg2 to be installed
     py_code = (
         "import os, psycopg2\n"
         "from psycopg2 import sql\n"
@@ -575,24 +574,6 @@ def step_init_planning(app_name: str, slug: str, description: str, dest: Path,
     roadmap_content = roadmap_content.replace("{APP_DESCRIPTION}", description)
     roadmap_path.write_text(roadmap_content, encoding="utf-8")
     log(f"   ✅ ROADMAP.md personalized")
-
-    # Create pipeline-status.json from template
-    now = datetime.datetime.now(datetime.timezone.utc).isoformat()
-    pipeline_template = json.loads(
-        (templates_dir / "pipeline-status.template.json").read_text(encoding="utf-8")
-    )
-    pipeline_template["app"]["slug"] = slug
-    pipeline_template["app"]["name"] = app_name
-    pipeline_template["app"]["url"] = vercel_url
-    pipeline_template["app"]["repo"] = github_url
-    pipeline_template["app"]["local_path"] = str(dest)
-    pipeline_template["updated_at"] = now
-
-    pipeline_path = planning_dir / "pipeline-status.json"
-    pipeline_path.write_text(
-        json.dumps(pipeline_template, indent=2) + "\n", encoding="utf-8"
-    )
-    log(f"   ✅ pipeline-status.json created")
 
     # Create empty features/ directory
     features_dir = planning_dir / "features"
