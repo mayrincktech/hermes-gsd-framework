@@ -1,8 +1,10 @@
 # GSD Framework
 
-**Metodologia spec-driven para desenvolvimento de apps com IA — do conceito ao deploy em produção.**
+**Metodologia spec-driven para desenvolvimento de apps com IA — roda sobre o [Hermes Agent](https://hermes-agent.nousresearch.com).**
 
 O GSD (Get Shit Done) é um framework que orquestra múltiplos agentes de IA com papéis especializados, gates de qualidade obrigatórios e pipeline estruturado. Não é só "pedir pro IA escrever código" — é um sistema production-ready com arquitetura travada, UX design gate e QA com modelo diferente do executor.
+
+> ⚠️ **Este framework depende do Hermes Agent e de patches específicos.** Veja [`docs/hermes-requirements.md`](docs/hermes-requirements.md) para setup completo.
 
 ---
 
@@ -90,6 +92,22 @@ Um comando provisiona tudo:
 
 ---
 
+## Hermes Integration
+
+O GSD roda sobre o Hermes Agent. Os 3 patches abaixo são **obrigatórios** e se reaplicam automaticamente após `hermes update`.
+
+| Patch | O que faz | Por que o GSD precisa |
+|---|---|---|
+| **Delegation Per-Task** | Permite trocar modelo entre delegações | Code AI (DeepSeek) e QA AI (Kimi) na mesma sessão |
+| **Neon RAG Plugin** | Memória semântica via Neon + pgvector | Research Agent e recall de contexto |
+| **Gemini Image Fallback** | Fallback quando FAL.ai falha | Geração de wireframes visuais e assets |
+
+**Provider:** `custom:opencode-go` (endpoint OpenCode Go com DeepSeek e Kimi)
+
+Setup completo em [`docs/hermes-requirements.md`](docs/hermes-requirements.md).
+
+---
+
 ## Stack técnica
 
 | Camada | Tecnologia |
@@ -117,6 +135,7 @@ gsd-framework/
 │   ├── roles.md                # Responsabilidades de cada agente
 │   ├── getting-started.md      # Setup passo a passo
 │   ├── provision.md            # Troubleshooting do provisioning
+│   ├── hermes-requirements.md  # Patches e config do Hermes (OBRIGATÓRIO)
 │   └── planning-structure.md   # Estrutura do .planning/
 ├── schemas/
 │   └── task-format.md          # Formato de tasks atômicas
@@ -131,11 +150,13 @@ gsd-framework/
 
 ## Pré-requisitos
 
+- **[Hermes Agent](https://hermes-agent.nousresearch.com)** com patches aplicados (ver [`docs/hermes-requirements.md`](docs/hermes-requirements.md))
 - **Python 3.11+** com `psycopg2-binary` (`pip install psycopg2-binary`)
 - **Node.js 22+** (recomendado via [nvm](https://github.com/nvm-sh/nvm))
 - **[gh CLI](https://cli.github.com/)** autenticado
 - **[Vercel CLI](https://vercel.com/docs/cli)** instalado (`npm i -g vercel`)
 - **Conta [Neon](https://neon.tech)** (free tier)
+- **Provider OpenCode Go** (`OPENCODE_API_KEY`) para DeepSeek e Kimi
 
 ---
 
