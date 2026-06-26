@@ -41,6 +41,13 @@ import yaml
 # Import KanbanBoard for integrated task tracking
 from kanban import KanbanBoard, KanbanCard, PHASE_STATUS_MAP
 
+# Import Hermes native Kanban bridge for visual dashboard sync
+try:
+    from kanban_hermes import HermesKanbanBridge
+    _HERMES_KANBAN_AVAILABLE = True
+except ImportError:
+    _HERMES_KANBAN_AVAILABLE = False
+
 
 # ---------------------------------------------------------------------------
 # Data Structures
@@ -163,7 +170,50 @@ class WorkflowEngine:
         # Initialize Kanban board from serialized state
         self.kanban_board = KanbanBoard.from_dict(self.state.kanban) if self.state.kanban else KanbanBoard()
 
+        # Initialize Hermes native Kanban bridge for visual dashboard
+        self.hermes_kanban: Optional[HermesKanbanBridge] = None
+        if _HERMES_KANBAN_AVAILABLE:
+            board_name = self._derive_board_name()
+            self.hermes_kanban = HermesKanbanBridge(board=board_name)
+
     # ── YAML Loading ──────────────────────────────────────────────────
+
+    def _derive_board_name(self) -> str:
+        """Derive a Hermes Kanban board name from the project directory."""
+        dirname = Path(self.project_dir).resolve().name
+        # Parent dir is the project name (e.g., .planning parent = biblia-ia)
+        parent = Path(self.project_dir).resolve().parent.name
+        name = parent if parent != "/" else dirname
+        return f"gsd-{name.lower().replace('_', '-')}"
+
+    def _sync_hermes_kanban(self, phase: str, is_rollback: bool = False, reason: str = ""):
+        """Push current kanban state to Hermes native Kanban board.
+        
+        Runs in a background thread to avoid blocking the daemon's socket handler
+        (hermes kanban CLI calls are slow — 1-3s each).
+        """
+        if not self.hermes_kanban:
+            return
+
+        import threading
+
+        def _do_sync():
+            try:
+                # Ensure all internal cards exist on Hermes board
+                for card_id, card in self.kanban_board.cards.items():
+                    if card_id not in self.hermes_kanban._task_map:
+                        self.hermes_kanban.create_task(
+                            card_id, card.title,
+                            assignee=card.assignee or "default",
+                            body=f"Tags: {', '.join(card.tags)}" if card.tags else "",
+                        )
+
+                # Sync phase transition
+                self.hermes_kanban.on_phase_change(phase, reason=reason, is_rollback=is_rollback)
+            except Exception:
+                pass  # Non-critical — Hermes Kanban sync is best-effort
+
+        threading.Thread(target=_do_sync, daemon=True).start()
 
     def _load_yaml(self) -> dict:
         with open(self.workflow_yaml_path) as f:
@@ -395,6 +445,9 @@ class WorkflowEngine:
         # Auto-transition kanban cards
         self.kanban_board.on_phase_change(next_pid, cur)
 
+        # Sync to Hermes native Kanban (visual dashboard)
+        self._sync_hermes_kanban(next_pid)
+
         self._log("advance", next_pid)
         self._save_state()
 
@@ -498,6 +551,9 @@ class WorkflowEngine:
 
         # Auto-transition kanban cards on rollback
         self.kanban_board.on_phase_change(target_phase, "", reason=reason, is_rollback=True)
+
+        # Sync to Hermes native Kanban (visual dashboard)
+        self._sync_hermes_kanban(target_phase, is_rollback=True, reason=reason)
 
         self._log("rollback", target_phase, {
             "reason": reason,

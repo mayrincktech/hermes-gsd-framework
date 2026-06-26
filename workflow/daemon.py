@@ -273,62 +273,28 @@ class WorkflowSocketServer(socketserver.ThreadingMixIn, socketserver.UnixStreamS
 
 
 # ---------------------------------------------------------------------------
-# HTTP Dashboard Server
+# Hermes Kanban Integration
 # ---------------------------------------------------------------------------
 
-DASHBOARD_PORT = 8420
-
-class DashboardHandler(http.server.BaseHTTPRequestHandler):
-    """Serves the Kanban dashboard HTML at GET /."""
-
-    daemon_ref: WorkflowDaemon = None  # set by main()
-
-    def do_GET(self):
-        if self.path == "/" or self.path == "/kanban":
-            try:
-                html_content = self.daemon_ref.engine.render_kanban_html()
-                self.send_response(200)
-                self.send_header("Content-Type", "text/html; charset=utf-8")
-                self.send_header("Cache-Control", "no-cache")
-                self.end_headers()
-                self.wfile.write(html_content.encode("utf-8"))
-            except Exception as e:
-                logger.exception("Dashboard render error")
-                self.send_response(500)
-                self.end_headers()
-                self.wfile.write(f"<html><body><h1>Dashboard Error</h1><pre>{e}</pre></body></html>".encode())
-
-        elif self.path == "/api/state":
-            self.send_response(200)
-            self.send_header("Content-Type", "application/json")
-            self.send_header("Cache-Control", "no-cache")
-            self.end_headers()
-            state = self.daemon_ref.engine.get_state()
-            self.wfile.write(json.dumps(state, indent=2).encode("utf-8"))
-
-        elif self.path == "/api/kanban":
-            self.send_response(200)
-            self.send_header("Content-Type", "application/json")
-            self.send_header("Cache-Control", "no-cache")
-            self.end_headers()
-            kanban = self.daemon_ref.engine.get_kanban()
-            self.wfile.write(json.dumps(kanban, indent=2).encode("utf-8"))
-
-        else:
-            self.send_response(404)
-            self.end_headers()
-
-    def log_message(self, format, *args):
-        pass  # suppress access logs
-
-
-def start_dashboard_thread(daemon: WorkflowDaemon, port: int = DASHBOARD_PORT):
-    """Start the HTTP dashboard server in a background thread."""
-    DashboardHandler.daemon_ref = daemon
-    httpd = http.server.HTTPServer(("0.0.0.0", port), DashboardHandler)
-    thread = threading.Thread(target=httpd.serve_forever, daemon=True, name="kanban-dashboard")
-    thread.start()
-    return httpd
+def ensure_board_exists(board_name: str):
+    """Ensure a Hermes Kanban board exists for this project."""
+    import subprocess
+    try:
+        result = subprocess.run(
+            ["hermes", "kanban", "boards", "list", "--json"],
+            capture_output=True, text=True, timeout=10,
+        )
+        if result.returncode == 0:
+            import json as _json
+            data = _json.loads(result.stdout.strip())
+            boards = data.get("boards", []) if isinstance(data, dict) else []
+            if not any(b.get("slug") == board_name for b in boards):
+                subprocess.run(
+                    ["hermes", "kanban", "boards", "create", board_name],
+                    capture_output=True, text=True, timeout=10,
+                )
+    except Exception:
+        pass  # Non-critical — Hermes Kanban is optional
 
 
 def main():
@@ -353,12 +319,6 @@ def main():
         action="store_true",
         help="Run in foreground (don't fork)",
     )
-    parser.add_argument(
-        "--dashboard-port", "-d",
-        type=int,
-        default=DASHBOARD_PORT,
-        help=f"HTTP dashboard port (default: {DASHBOARD_PORT})",
-    )
     args = parser.parse_args()
 
     # Clean up stale socket
@@ -371,18 +331,15 @@ def main():
         socket_path=args.socket,
     )
 
+    # Ensure Hermes Kanban board exists for visual dashboard
+    board_name = daemon.engine._derive_board_name()
+    ensure_board_exists(board_name)
+
     # Make handler reference the daemon
     SocketHandler.daemon_ref = daemon
 
     server = WorkflowSocketServer(args.socket, SocketHandler)
     os.chmod(args.socket, 0o600)  # only owner can read/write
-
-    # Start HTTP dashboard
-    try:
-        dashboard = start_dashboard_thread(daemon, args.dashboard_port)
-    except OSError as e:
-        print(f"  Dashboard: port {args.dashboard_port} unavailable ({e})", flush=True)
-        dashboard = None
 
     logger.info(
         f"Workflow daemon started. Socket: {args.socket}\n"
@@ -396,7 +353,8 @@ def main():
         f"  Socket: {args.socket}\n"
         f"  Workflow: {args.workflow}\n"
         f"  Project: {args.project_dir}\n"
-        f"  Dashboard: http://localhost:{args.dashboard_port}\n"
+        f"  Kanban: hermes kanban --board {board_name} list\n"
+        f"  Dashboard: hermes dashboard → Kanban tab\n"
         f"  PID: {os.getpid()}\n"
         f"  Ready. Waiting for connections...",
         flush=True,
