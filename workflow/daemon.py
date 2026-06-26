@@ -19,6 +19,7 @@ Socket: /tmp/gsd-workflow.sock (configurable via --socket)
 from __future__ import annotations
 
 import argparse
+import http.server
 import json
 import logging
 import os
@@ -186,6 +187,39 @@ class WorkflowDaemon:
     def _api_verify_integrity(self, args) -> dict:
         return {"ok": True, "data": {"intact": self.engine.verify_integrity()}}
 
+    # ── Kanban API ────────────────────────────────────────────────
+
+    def _api_add_kanban_card(self, args) -> dict:
+        card_id = args.get("card_id", "")
+        title = args.get("title", "")
+        phase = args.get("phase", "")
+        assignee = args.get("assignee", "")
+        tags = args.get("tags", [])
+        if not card_id or not title:
+            return {"ok": False, "error": "card_id and title are required"}
+        card = self.engine.add_kanban_card(card_id, title, phase, assignee, tags)
+        return {"ok": True, "data": card}
+
+    def _api_update_kanban_card(self, args) -> dict:
+        card_id = args.get("card_id", "")
+        if not card_id:
+            return {"ok": False, "error": "card_id is required"}
+        kwargs = {k: v for k, v in args.items() if k != "card_id"}
+        card = self.engine.update_kanban_card(card_id, **kwargs)
+        if not card:
+            return {"ok": False, "error": f"Card not found: {card_id}"}
+        return {"ok": True, "data": card}
+
+    def _api_remove_kanban_card(self, args) -> dict:
+        card_id = args.get("card_id", "")
+        if not card_id:
+            return {"ok": False, "error": "card_id is required"}
+        result = self.engine.remove_kanban_card(card_id)
+        return {"ok": result}
+
+    def _api_get_kanban(self, args) -> dict:
+        return {"ok": True, "data": self.engine.get_kanban()}
+
 
 # ---------------------------------------------------------------------------
 # Unix Socket Server
@@ -238,6 +272,65 @@ class WorkflowSocketServer(socketserver.ThreadingMixIn, socketserver.UnixStreamS
     allow_reuse_address = True
 
 
+# ---------------------------------------------------------------------------
+# HTTP Dashboard Server
+# ---------------------------------------------------------------------------
+
+DASHBOARD_PORT = 8420
+
+class DashboardHandler(http.server.BaseHTTPRequestHandler):
+    """Serves the Kanban dashboard HTML at GET /."""
+
+    daemon_ref: WorkflowDaemon = None  # set by main()
+
+    def do_GET(self):
+        if self.path == "/" or self.path == "/kanban":
+            try:
+                html_content = self.daemon_ref.engine.render_kanban_html()
+                self.send_response(200)
+                self.send_header("Content-Type", "text/html; charset=utf-8")
+                self.send_header("Cache-Control", "no-cache")
+                self.end_headers()
+                self.wfile.write(html_content.encode("utf-8"))
+            except Exception as e:
+                logger.exception("Dashboard render error")
+                self.send_response(500)
+                self.end_headers()
+                self.wfile.write(f"<html><body><h1>Dashboard Error</h1><pre>{e}</pre></body></html>".encode())
+
+        elif self.path == "/api/state":
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Cache-Control", "no-cache")
+            self.end_headers()
+            state = self.daemon_ref.engine.get_state()
+            self.wfile.write(json.dumps(state, indent=2).encode("utf-8"))
+
+        elif self.path == "/api/kanban":
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Cache-Control", "no-cache")
+            self.end_headers()
+            kanban = self.daemon_ref.engine.get_kanban()
+            self.wfile.write(json.dumps(kanban, indent=2).encode("utf-8"))
+
+        else:
+            self.send_response(404)
+            self.end_headers()
+
+    def log_message(self, format, *args):
+        pass  # suppress access logs
+
+
+def start_dashboard_thread(daemon: WorkflowDaemon, port: int = DASHBOARD_PORT):
+    """Start the HTTP dashboard server in a background thread."""
+    DashboardHandler.daemon_ref = daemon
+    httpd = http.server.HTTPServer(("0.0.0.0", port), DashboardHandler)
+    thread = threading.Thread(target=httpd.serve_forever, daemon=True, name="kanban-dashboard")
+    thread.start()
+    return httpd
+
+
 def main():
     parser = argparse.ArgumentParser(description="GSD Workflow Daemon")
     parser.add_argument(
@@ -260,6 +353,12 @@ def main():
         action="store_true",
         help="Run in foreground (don't fork)",
     )
+    parser.add_argument(
+        "--dashboard-port", "-d",
+        type=int,
+        default=DASHBOARD_PORT,
+        help=f"HTTP dashboard port (default: {DASHBOARD_PORT})",
+    )
     args = parser.parse_args()
 
     # Clean up stale socket
@@ -278,6 +377,13 @@ def main():
     server = WorkflowSocketServer(args.socket, SocketHandler)
     os.chmod(args.socket, 0o600)  # only owner can read/write
 
+    # Start HTTP dashboard
+    try:
+        dashboard = start_dashboard_thread(daemon, args.dashboard_port)
+    except OSError as e:
+        print(f"  Dashboard: port {args.dashboard_port} unavailable ({e})", flush=True)
+        dashboard = None
+
     logger.info(
         f"Workflow daemon started. Socket: {args.socket}\n"
         f"Workflow: {args.workflow}\n"
@@ -290,6 +396,7 @@ def main():
         f"  Socket: {args.socket}\n"
         f"  Workflow: {args.workflow}\n"
         f"  Project: {args.project_dir}\n"
+        f"  Dashboard: http://localhost:{args.dashboard_port}\n"
         f"  PID: {os.getpid()}\n"
         f"  Ready. Waiting for connections...",
         flush=True,

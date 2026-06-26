@@ -38,6 +38,9 @@ from typing import Any, Optional
 
 import yaml
 
+# Import KanbanBoard for integrated task tracking
+from kanban import KanbanBoard, KanbanCard, PHASE_STATUS_MAP
+
 
 # ---------------------------------------------------------------------------
 # Data Structures
@@ -65,6 +68,7 @@ class WorkflowState:
     history: list = field(default_factory=list)  # audit trail of all transitions
     created_at: float = field(default_factory=time.time)
     hmac_key: Optional[str] = None  # if set, state JSON is signed
+    kanban: dict = field(default_factory=dict)  # KanbanBoard serialized
 
     def to_dict(self) -> dict:
         return {
@@ -74,6 +78,7 @@ class WorkflowState:
             "phases": {k: asdict(v) for k, v in self.phases.items()},
             "history": self.history,
             "created_at": self.created_at,
+            "kanban": self.kanban,
         }
 
     @classmethod
@@ -88,6 +93,7 @@ class WorkflowState:
             phases=phases,
             history=data.get("history", []),
             created_at=data.get("created_at", time.time()),
+            kanban=data.get("kanban", {}),
         )
 
 
@@ -154,6 +160,9 @@ class WorkflowEngine:
 
         self.state = state or self._load_state()
 
+        # Initialize Kanban board from serialized state
+        self.kanban_board = KanbanBoard.from_dict(self.state.kanban) if self.state.kanban else KanbanBoard()
+
     # ── YAML Loading ──────────────────────────────────────────────────
 
     def _load_yaml(self) -> dict:
@@ -195,6 +204,8 @@ class WorkflowEngine:
 
     def _save_state(self):
         """Save state to JSON. In daemon mode, this is in-memory only."""
+        # Sync kanban board to state before saving
+        self.state.kanban = self.kanban_board.to_dict()
         sf = self._state_file()
         sf.parent.mkdir(parents=True, exist_ok=True)
         data = self.state.to_dict()
@@ -380,6 +391,10 @@ class WorkflowEngine:
         self.state.current_phase = next_pid
         self.state.phases[next_pid].status = "active"
         self.state.phases[next_pid].started_at = time.time()
+
+        # Auto-transition kanban cards
+        self.kanban_board.on_phase_change(next_pid, cur)
+
         self._log("advance", next_pid)
         self._save_state()
 
@@ -481,6 +496,9 @@ class WorkflowEngine:
         self.state.phases[target_phase].completed_at = None
         self.state.current_phase = target_phase
 
+        # Auto-transition kanban cards on rollback
+        self.kanban_board.on_phase_change(target_phase, "", reason=reason, is_rollback=True)
+
         self._log("rollback", target_phase, {
             "reason": reason,
             "invalidated": invalidated,
@@ -563,6 +581,39 @@ class WorkflowEngine:
 
     def get_history(self) -> list:
         return self.state.history
+
+    # ── Kanban ─────────────────────────────────────────────────────
+
+    def add_kanban_card(self, card_id: str, title: str, phase: str = "", assignee: str = "", tags: list = None) -> dict:
+        """Add a task card to the Kanban board."""
+        card = self.kanban_board.add_card(card_id, title, phase or self.state.current_phase, assignee, tags)
+        self._save_state()
+        return card.to_dict()
+
+    def update_kanban_card(self, card_id: str, **kwargs) -> dict:
+        """Update a task card on the Kanban board."""
+        card = self.kanban_board.update_card(card_id, _phase=self.state.current_phase, **kwargs)
+        if not card:
+            return {}
+        self._save_state()
+        return card.to_dict()
+
+    def remove_kanban_card(self, card_id: str) -> bool:
+        """Remove a task card from the Kanban board."""
+        result = self.kanban_board.remove_card(card_id)
+        self._save_state()
+        return result
+
+    def get_kanban(self) -> dict:
+        """Return the full Kanban board state."""
+        return {
+            "cards": [c.to_dict() for c in self.kanban_board.get_all_cards()],
+            "stats": self.kanban_board.get_stats(),
+        }
+
+    def render_kanban_html(self) -> str:
+        """Render the Kanban board as an HTML page."""
+        return self.kanban_board.render_html(self.state.to_dict())
 
     # ── HMAC ──────────────────────────────────────────────────────────
 
